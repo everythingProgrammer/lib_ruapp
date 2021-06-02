@@ -1,15 +1,22 @@
-GCC=gcc
-CFLAGS=-c -Wall -Werror -fpic
+GCC=gcc -g
+CFLAGS=-c -Wall -Werror
+SFLAG=-fpic
 INCLUDE=ru_app_lib/
 BINDIR=build/
 OBJDIR=build/
 LIBDIR=build/
 SRCDIR=ru_app_lib/
+APPDIR=app/
+APPOBJ=app/
 SRCEXT=c
 OBJEXT=o
-LFLAG=-lsysrepo
+SYSREPO_LFLAG=-lsysrepo
+YANG_LFLAG=-lyang
+DL_LFLAG=-ldl
 SOURCES_LIB=$(wildcard $(SRCDIR)*.c)
 OBJECTS_LIB := $(patsubst $(SRCDIR)%,$(OBJDIR)%,$(SOURCES_LIB:.$(SRCEXT)=.$(OBJEXT)))
+SOURCES_APP=$(wildcard $(APPDIR)*.c)
+OBJECTS_APP := $(patsubst $(APPDIR)%,$(APPOBJ)%,$(SOURCES_APP:.$(SRCEXT)=.$(OBJEXT)))
 # $@, The name of target
 # $^, The name of all depencency 
 # $<, The name of first depencency
@@ -18,21 +25,29 @@ OBJECTS_LIB := $(patsubst $(SRCDIR)%,$(OBJDIR)%,$(SOURCES_LIB:.$(SRCEXT)=.$(OBJE
 
 all: $(BINDIR)libruapp.so $(BINDIR)ruapp
 $(BINDIR)libruapp.so: $(OBJECTS_LIB)
+	@echo "SRCS: $(SOURCES_APP)"
+	@echo "OBJS: $(OBJECTS_APP)"
 	@echo "Lnking all library object files"
-	$(GCC) $^ -shared -o $@ $(LFLAG)
+	$(GCC) $^ -shared -o $@
 	@echo "Done, created $@"    
 
 $(OBJDIR)%.o: $(SRCDIR)%.c
 	@echo "Compiling $<"
-	$(GCC) $(CFLAGS) -I$(INCLUDE)  $<  -o $@
+	$(GCC) $(CFLAGS) $(SFLAG) -I$(INCLUDE)  $<  -o $@
 	@echo "Done"
 
-$(BINDIR)ruapp:
+$(APPOBJ)%.o: $(APPDIR)%.c
+	@echo "Compiling $<"
+	$(GCC) $(CFLAGS) -I./$(APPOBJ)  $<  -o $@
+	@echo "Done"
+
+$(BINDIR)ruapp: $(OBJECTS_APP)
 	@echo "Creating ruapp"
 	@echo Link PATH: $(LD_LIBRARY_PATH)
-	$(GCC) -L$(LIBDIR) main.c -I$(INCLUDE) -o $@ -lruapp
+	$(GCC)  $^ -o $@ $(SYSREPO_LFLAG) $(YANG_LFLAG) $(DL_LFLAG)
+	#$(GCC) -L$(LIBDIR) main.c -I$(INCLUDE) -o $@ -lruapp -ldl
 
 clean:
-	rm -rf $(BINDIR)*.o $(BINDIR)*.so $(BINDIR)ruapp
+	rm -rf $(BINDIR)*.o $(BINDIR)*.so $(BINDIR)ruapp $(APPOBJ)*.o
 
 
